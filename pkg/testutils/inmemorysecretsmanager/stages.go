@@ -1,6 +1,8 @@
 package inmemorysecretsmanager
 
-import "github.com/SKF/jwt-rotator/internal/rotator/versionstage"
+import (
+	"github.com/SKF/jwt-rotator/pkg/versionstage"
+)
 
 type Stages []versionstage.VersionStage
 

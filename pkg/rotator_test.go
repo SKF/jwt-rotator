@@ -1,4 +1,4 @@
-package rotator_test
+package pkg_test
 
 import (
 	"context"
@@ -12,10 +12,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/SKF/jwt-rotator/internal/rotator"
-	"github.com/SKF/jwt-rotator/internal/rotator/step"
-	"github.com/SKF/jwt-rotator/internal/rotator/testutils/inmemorysecretsmanager"
-	"github.com/SKF/jwt-rotator/internal/rotator/versionstage"
+	"github.com/SKF/jwt-rotator/pkg"
+	"github.com/SKF/jwt-rotator/pkg/step"
+	"github.com/SKF/jwt-rotator/pkg/testutils/inmemorysecretsmanager"
+	"github.com/SKF/jwt-rotator/pkg/versionstage"
 )
 
 const (
@@ -25,13 +25,13 @@ const (
 func TestRotate_CreateSecret_Uninitialized(t *testing.T) {
 	// Given
 	secretsManager := inmemorysecretsmanager.New()
-	jwtRotator := rotator.JWTRotator{
+	jwtRotator := pkg.JWTRotator{
 		SecretsManager: secretsManager,
 		TokenProvider:  &TokenProviderStub{},
 	}
 
 	// When
-	err := jwtRotator.Rotate(context.Background(), rotator.SecretManagerEvent{
+	err := jwtRotator.Rotate(context.Background(), pkg.SecretManagerEvent{
 		Step:               step.CreateSecret,
 		SecretID:           secretToRotate,
 		ClientRequestToken: "version-0",
@@ -39,25 +39,25 @@ func TestRotate_CreateSecret_Uninitialized(t *testing.T) {
 
 	// Then
 	require.Error(t, err)
-	assert.ErrorIs(t, err, rotator.ErrResourceNotFound)
+	assert.ErrorIs(t, err, pkg.ErrResourceNotFound)
 }
 
 func TestRotate_CreateSecret(t *testing.T) {
 	// Given
 	ctx := context.Background()
 	secretsManager := inmemorysecretsmanager.New()
-	initialToken := rotator.StoredToken{
+	initialToken := pkg.StoredToken{
 		RawToken: "first-token",
 	}
 	initializeSecretsManager(t, secretsManager, initialToken)
 
-	jwtRotator := rotator.JWTRotator{
+	jwtRotator := pkg.JWTRotator{
 		SecretsManager: secretsManager,
 		TokenProvider:  &TokenProviderStub{},
 	}
 
 	// When
-	err := jwtRotator.Rotate(ctx, rotator.SecretManagerEvent{
+	err := jwtRotator.Rotate(ctx, pkg.SecretManagerEvent{
 		Step:               step.CreateSecret,
 		SecretID:           secretToRotate,
 		ClientRequestToken: "version-0",
@@ -76,19 +76,19 @@ func TestRotate_CreateSecret_Twice(t *testing.T) {
 	// Given
 	ctx := context.Background()
 	secretsManager := inmemorysecretsmanager.New()
-	initialToken := rotator.StoredToken{
+	initialToken := pkg.StoredToken{
 		RawToken: "first-token",
 	}
 	initializeSecretsManager(t, secretsManager, initialToken)
 
-	jwtRotator := rotator.JWTRotator{
+	jwtRotator := pkg.JWTRotator{
 		SecretsManager: secretsManager,
 		TokenProvider:  &TokenProviderStub{},
 	}
 
 	for i := 0; i < 2; i++ {
 		// When
-		err := jwtRotator.Rotate(ctx, rotator.SecretManagerEvent{
+		err := jwtRotator.Rotate(ctx, pkg.SecretManagerEvent{
 			Step:               step.CreateSecret,
 			SecretID:           secretToRotate,
 			ClientRequestToken: "version-0",
@@ -108,24 +108,24 @@ func TestRotate_TestSecret(t *testing.T) {
 	// Given
 	ctx := context.Background()
 	secretsManager := inmemorysecretsmanager.New()
-	initialToken := rotator.StoredToken{
+	initialToken := pkg.StoredToken{
 		RawToken: "first-token",
 	}
 	initializeSecretsManager(t, secretsManager, initialToken)
 
-	jwtRotator := rotator.JWTRotator{
+	jwtRotator := pkg.JWTRotator{
 		SecretsManager: secretsManager,
 		TokenProvider:  &TokenProviderStub{},
 	}
 
 	// When
-	err := jwtRotator.Rotate(ctx, rotator.SecretManagerEvent{
+	err := jwtRotator.Rotate(ctx, pkg.SecretManagerEvent{
 		Step:               step.CreateSecret,
 		SecretID:           secretToRotate,
 		ClientRequestToken: "version-0",
 	})
 	require.NoError(t, err)
-	err = jwtRotator.Rotate(ctx, rotator.SecretManagerEvent{
+	err = jwtRotator.Rotate(ctx, pkg.SecretManagerEvent{
 		Step:               step.TestSecret,
 		SecretID:           secretToRotate,
 		ClientRequestToken: "version-0",
@@ -140,24 +140,24 @@ func TestRotate_FinishSecret(t *testing.T) {
 	// Given
 	ctx := context.Background()
 	secretsManager := inmemorysecretsmanager.New()
-	initialToken := rotator.StoredToken{
+	initialToken := pkg.StoredToken{
 		RawToken: "first-token",
 	}
 	initializeSecretsManager(t, secretsManager, initialToken)
 
-	jwtRotator := rotator.JWTRotator{
+	jwtRotator := pkg.JWTRotator{
 		SecretsManager: secretsManager,
 		TokenProvider:  &TokenProviderStub{},
 	}
 
 	// When
-	err := jwtRotator.Rotate(ctx, rotator.SecretManagerEvent{
+	err := jwtRotator.Rotate(ctx, pkg.SecretManagerEvent{
 		Step:               step.CreateSecret,
 		SecretID:           secretToRotate,
 		ClientRequestToken: "version-0",
 	})
 	require.NoError(t, err)
-	err = jwtRotator.Rotate(ctx, rotator.SecretManagerEvent{
+	err = jwtRotator.Rotate(ctx, pkg.SecretManagerEvent{
 		Step:               step.FinishSecret,
 		SecretID:           secretToRotate,
 		ClientRequestToken: "version-0",
@@ -172,7 +172,7 @@ func TestRotate_FinishSecret(t *testing.T) {
 	assert.Equal(t, "token-0", string(pendingToken.RawToken))
 }
 
-func initializeSecretsManager(t *testing.T, manager *inmemorysecretsmanager.InMemorySecretsManager, token rotator.StoredToken) {
+func initializeSecretsManager(t *testing.T, manager *inmemorysecretsmanager.InMemorySecretsManager, token pkg.StoredToken) {
 	bytes, err := json.Marshal(token)
 	require.NoError(t, err)
 
@@ -186,7 +186,7 @@ func initializeSecretsManager(t *testing.T, manager *inmemorysecretsmanager.InMe
 	require.NoError(t, err)
 }
 
-func getCurrentToken(t *testing.T, secretsManager *inmemorysecretsmanager.InMemorySecretsManager) rotator.StoredToken {
+func getCurrentToken(t *testing.T, secretsManager *inmemorysecretsmanager.InMemorySecretsManager) pkg.StoredToken {
 	t.Helper()
 
 	result, err := secretsManager.GetSecretValueWithContext(context.Background(), &secretsmanager.GetSecretValueInput{
@@ -195,14 +195,14 @@ func getCurrentToken(t *testing.T, secretsManager *inmemorysecretsmanager.InMemo
 	})
 	require.NoError(t, err)
 
-	var token rotator.StoredToken
+	var token pkg.StoredToken
 	err = json.Unmarshal(result.SecretBinary, &token)
 	require.NoError(t, err)
 
 	return token
 }
 
-func getPendingToken(t *testing.T, secretsManager *inmemorysecretsmanager.InMemorySecretsManager) rotator.StoredToken {
+func getPendingToken(t *testing.T, secretsManager *inmemorysecretsmanager.InMemorySecretsManager) pkg.StoredToken {
 	t.Helper()
 
 	result, err := secretsManager.GetSecretValueWithContext(context.Background(), &secretsmanager.GetSecretValueInput{
@@ -211,7 +211,7 @@ func getPendingToken(t *testing.T, secretsManager *inmemorysecretsmanager.InMemo
 	})
 	require.NoError(t, err)
 
-	var token rotator.StoredToken
+	var token pkg.StoredToken
 	err = json.Unmarshal(result.SecretBinary, &token)
 	require.NoError(t, err)
 

@@ -5,7 +5,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 
-	"github.com/SKF/jwt-rotator/internal/rotator"
+	"github.com/SKF/jwt-rotator/pkg"
 )
 
 type InMemorySecretsManager struct {
@@ -83,4 +83,4 @@ func (s InMemorySecretsManager) GetSecretValueWithContext(_ aws.Context, input *
 	return nil, &secretsmanager.ResourceNotFoundException{}
 }
 
-var _ rotator.SecretsManagerClient = &InMemorySecretsManager{}
+var _ pkg.SecretsManagerClient = &InMemorySecretsManager{}

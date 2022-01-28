@@ -8,7 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 
-	"github.com/SKF/jwt-rotator/internal/rotator"
+	"github.com/SKF/jwt-rotator/pkg"
 )
 
 var (
@@ -25,7 +25,7 @@ func main() {
 		SecretsClient: auth.SecretsManagerV1Client{},
 	}
 
-	jwtRotator := rotator.JWTRotator{
+	jwtRotator := pkg.JWTRotator{
 		SecretsManager: secretsmanager.New(sess),
 		TokenProvider:  &credentialsTokenProvider,
 	}

@@ -1,4 +1,4 @@
-package rotator
+package pkg
 
 import (
 	"context"
@@ -13,8 +13,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 
-	"github.com/SKF/jwt-rotator/internal/rotator/step"
-	"github.com/SKF/jwt-rotator/internal/rotator/versionstage"
+	"github.com/SKF/jwt-rotator/pkg/step"
+	"github.com/SKF/jwt-rotator/pkg/versionstage"
 )
 
 type SecretsManagerClient interface {

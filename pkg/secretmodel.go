@@ -1,4 +1,4 @@
-package rotator
+package pkg
 
 import "github.com/SKF/go-rest-utility/client/auth"
 
