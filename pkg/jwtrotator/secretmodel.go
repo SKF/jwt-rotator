@@ -1,4 +1,4 @@
-package pkg
+package jwtrotator
 
 import "github.com/SKF/go-rest-utility/client/auth"
 
