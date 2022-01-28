@@ -8,6 +8,7 @@ require (
 	github.com/SKF/go-utility/v2 v2.25.3
 	github.com/aws/aws-lambda-go v1.28.0
 	github.com/aws/aws-sdk-go v1.42.43
+	github.com/stretchr/testify v1.7.0
 )
 
 require (
@@ -22,6 +23,7 @@ require (
 	github.com/aws/aws-xray-sdk-go v1.6.0 // indirect
 	github.com/aws/smithy-go v1.10.0 // indirect
 	github.com/cenkalti/backoff v2.1.1+incompatible // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang-jwt/jwt/v4 v4.2.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
@@ -30,6 +32,7 @@ require (
 	github.com/klauspost/compress v1.11.8 // indirect
 	github.com/philhofer/fwd v1.0.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/sony/gobreaker v0.4.1 // indirect
 	github.com/tinylib/msgp v1.1.2 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect

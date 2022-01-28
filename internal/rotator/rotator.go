@@ -9,15 +9,24 @@ import (
 
 	"github.com/SKF/go-rest-utility/client/auth"
 	"github.com/SKF/go-utility/v2/log"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 
 	"github.com/SKF/jwt-rotator/internal/rotator/step"
 	"github.com/SKF/jwt-rotator/internal/rotator/versionstage"
 )
 
+type SecretsManagerClient interface {
+	DescribeSecretWithContext(ctx aws.Context, input *secretsmanager.DescribeSecretInput, opts ...request.Option) (*secretsmanager.DescribeSecretOutput, error)
+	UpdateSecretVersionStageWithContext(ctx aws.Context, input *secretsmanager.UpdateSecretVersionStageInput, opts ...request.Option) (*secretsmanager.UpdateSecretVersionStageOutput, error)
+	PutSecretValueWithContext(ctx aws.Context, input *secretsmanager.PutSecretValueInput, opts ...request.Option) (*secretsmanager.PutSecretValueOutput, error)
+	GetSecretValueWithContext(ctx aws.Context, input *secretsmanager.GetSecretValueInput, opts ...request.Option) (*secretsmanager.GetSecretValueOutput, error)
+}
+
 type JWTRotator struct {
-	SecretsManager *secretsmanager.SecretsManager
-	TokenProvider  auth.SecretCredentialsTokenProvider
+	SecretsManager SecretsManagerClient
+	TokenProvider  auth.TokenProvider
 }
 
 type SecretManagerEvent struct {
@@ -39,19 +48,19 @@ func (h JWTRotator) Rotate(ctx context.Context, event SecretManagerEvent) error 
 
 	switch event.Step {
 	case step.CreateSecret:
-		return h.CreateSecret(ctx, version)
+		return h.createSecret(ctx, version)
 	case step.SetSecret:
 		return nil
 	case step.TestSecret:
-		return h.TestSecret(ctx, version)
+		return h.testSecret(ctx, version)
 	case step.FinishSecret:
-		return h.FinishSecret(ctx, version)
+		return h.finishSecret(ctx, version)
 	}
 
 	return nil
 }
 
-func (h JWTRotator) CreateSecret(ctx context.Context, version secretVersion) error {
+func (h JWTRotator) createSecret(ctx context.Context, version secretVersion) error {
 	log.WithTracing(ctx).Infof("Creating secret with versionID: %s", version.ClientRequestToken)
 
 	if _, err := h.getCurrentSecret(ctx, version.SecretID); err != nil {
@@ -59,7 +68,7 @@ func (h JWTRotator) CreateSecret(ctx context.Context, version secretVersion) err
 	}
 
 	_, err := h.getPendingSecret(ctx, version)
-	if errors.Is(parseAWSError(err), ErrResourceNotFound) {
+	if errors.Is(err, ErrResourceNotFound) {
 		if err = h.provisionNewToken(ctx, version); err != nil {
 			return fmt.Errorf("failed to provision new token: %w", err)
 		}
@@ -70,7 +79,7 @@ func (h JWTRotator) CreateSecret(ctx context.Context, version secretVersion) err
 	return nil
 }
 
-func (h JWTRotator) TestSecret(ctx context.Context, version secretVersion) error {
+func (h JWTRotator) testSecret(ctx context.Context, version secretVersion) error {
 	log.WithTracing(ctx).Infof("Testing secret with versionID: %s", version.ClientRequestToken)
 
 	storedToken, err := h.getPendingSecret(ctx, version)
@@ -90,14 +99,14 @@ func (h JWTRotator) TestSecret(ctx context.Context, version secretVersion) error
 	return nil
 }
 
-func (h JWTRotator) FinishSecret(ctx context.Context, version secretVersion) error {
+func (h JWTRotator) finishSecret(ctx context.Context, version secretVersion) error {
 	log.WithTracing(ctx).Infof("Finishing secret with versionID: %s", version.ClientRequestToken)
 
 	metadata, err := h.SecretsManager.DescribeSecretWithContext(ctx, &secretsmanager.DescribeSecretInput{
 		SecretId: &version.SecretID,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to describe secret with id '%s': %w", version.SecretID, err)
+		return fmt.Errorf("failed to describe secret with id '%s': %w", version.SecretID, parseAWSError(err))
 	}
 
 	currentVersion, err := h.findCurrentVersion(metadata)
@@ -115,7 +124,7 @@ func (h JWTRotator) FinishSecret(ctx context.Context, version secretVersion) err
 		SecretId:            &version.SecretID,
 		VersionStage:        versionstage.AwsCurrent.StringPtr(),
 	}); err != nil {
-		return fmt.Errorf("failed to update secret from PENDING to CURRENT: %w", err)
+		return fmt.Errorf("failed to update secret from PENDING to CURRENT: %w", parseAWSError(err))
 	}
 
 	return nil
@@ -154,7 +163,7 @@ func (h JWTRotator) provisionNewToken(ctx context.Context, version secretVersion
 		SecretId:           &version.SecretID,
 		VersionStages:      []*string{versionstage.AWSPending.StringPtr()},
 	}); err != nil {
-		return fmt.Errorf("failed to put secret value: %w", err)
+		return fmt.Errorf("failed to put secret value: %w", parseAWSError(err))
 	}
 
 	return nil
@@ -178,7 +187,7 @@ func (h JWTRotator) getSecretByStage(ctx context.Context, secretID string, stage
 		VersionStage: stage.StringPtr(),
 	})
 	if err != nil {
-		return StoredToken{}, fmt.Errorf("failed to get secret value: %w", err)
+		return StoredToken{}, fmt.Errorf("failed to get secret value: %w", parseAWSError(err))
 	}
 
 	var storedToken StoredToken
@@ -192,7 +201,7 @@ func (h JWTRotator) getSecretByStage(ctx context.Context, secretID string, stage
 func (h JWTRotator) getSecret(ctx context.Context, input secretsmanager.GetSecretValueInput) (StoredToken, error) {
 	secretBinary, err := h.SecretsManager.GetSecretValueWithContext(ctx, &input)
 	if err != nil {
-		return StoredToken{}, fmt.Errorf("failed to get secret value: %w", err)
+		return StoredToken{}, fmt.Errorf("failed to get secret value: %w", parseAWSError(err))
 	}
 
 	var storedToken StoredToken
